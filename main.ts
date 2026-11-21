@@ -19,10 +19,11 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 const JOKE: string =
   "My AI coding agent writes the code, reviews it, and merges it — I just sit here nodding at the diff like a manager who stopped reading the reports.";
 
-async function main(): Promise<void> {
-  const text = JOKE;
-
-  // The gate counts Unicode code points, not bytes, and refuses blank text.
+// The gate counts Unicode code points, not bytes, and refuses blank text.
+// A joke that opens or closes with white space would reach the judge with
+// a ragged edge, so leading and trailing space fail here too, as does a
+// joke that never lands on terminal punctuation.
+function validateJoke(text: string): void {
   const length = [...text].length;
   if (length < 1 || length > 280) {
     throw new Error(`joke is ${length} code points, must be 1-280`);
@@ -33,6 +34,18 @@ async function main(): Promise<void> {
   if (text.includes("\n")) {
     throw new Error("joke must be a single line");
   }
+  if (text !== text.trim()) {
+    throw new Error("joke must not open or close with white space");
+  }
+  if (!/[.!?]$/.test(text)) {
+    throw new Error("joke must land on terminal punctuation");
+  }
+}
+
+async function main(): Promise<void> {
+  const text = JOKE;
+
+  validateJoke(text);
 
   await mkdir("/output", { recursive: true });
   await writeFile("/output/entry.txt", text, "utf8");
